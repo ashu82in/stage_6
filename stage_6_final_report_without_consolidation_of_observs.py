@@ -423,11 +423,32 @@ def updateWordDoc():
     global df2
     global up_files
     section_report = set(df2["Section"])
+    count_temp = 1
     for i in section_report:
         df3 = df2[df2["Section"] == i]
         no_of_images = sum(list(df3["No of Images"]))
         # st.write("no of image" + str(no_of_images))
+        df3_temp =  df3.copy(deep=True)
+        for idx, row in df3_temp.iterrows():
+            no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
+            if no_of_img_temp>1:
+                start_val_temp =  count_temp
+                end_val_temp = count_temp + no_of_img_temp - 1
+                img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
+                df3_temp.loc[idx,"Image No."] = img_val 
+                count_temp = count_temp + no_of_img_temp
+            else:
+                start_val_temp =  count_temp
+                img_val = "00"+str(start_val_temp)
+                df3_temp.loc[idx,"Image No."] = img_val 
+                count_temp = count_temp + no_of_img_temp
+                
+        df3 = df3_temp       
         df3 = df3.drop(["No of Images"], axis=1)
+        
+        
+        
+        
         df4 = df3.copy(deep=True)
         df3 = df3.iloc[:, :-2]
         # st.write(df3)
