@@ -166,10 +166,12 @@ def set_repeat_table_header(row):
 
 def row_position(df_final):
     # df_final= df2
+    # st.write(df_final)
     identical_rows_dict = {}
     row_positions  = []
     item_obs = df_final["Element"] + df_final["Observations"]
     item_obs_list = list(item_obs)
+    # st.write(item_obs_list)
     for i,j in item_obs.value_counts().items():
         identical_rows_dict[i] = j
     #         print(row_positions[-1])
@@ -227,10 +229,15 @@ def updateTable_final(df_final, test):
     for j in range(df_final.shape[-1]):
         t.cell(0,j).text = df_final.columns[j]
     
+    ctr_temp_1 = 1
     # add the rest of the data frame
     for i in range(df_final.shape[0]):
         for j in range(df_final.shape[-1]):
-            t.cell(i+1,j).text = str(df_final.values[i,j])
+            if j == 0:
+                t.cell(i+1,j).text = str(ctr_temp_1)
+                ctr_temp_1 = ctr_temp_1 + 1
+            else:
+                t.cell(i+1,j).text = str(df_final.values[i,j])
     
     # st.write(df_final)
     row_positions = row_position(df_final)
@@ -245,6 +252,7 @@ def updateTable_final(df_final, test):
         # st.write(row_no)
         st_pos = row_no[0]
         end_pos = row_no[1]
+        ctr_row = 0
         if st_pos != end_pos:
             for i in [0,1,2,3,7]: 
                 a = t.cell(st_pos, i)
@@ -258,8 +266,10 @@ def updateTable_final(df_final, test):
             #    c.text = ""
             #    A = a.merge(c)
             #    A.text = temp_content
-            #    if i == 0:
-            #        A.text = str(state["row_no"] + sort_dict[st_pos])
+                # if i == 0:
+                #     for pt in range(st_pos, end_pos+1):
+                #         t.cell(pt, i).text = str(pt)
+                #         # ctr_row = ctr_row + 1
             for col in [4,5,6]:
                  for row in range(st_pos,end_pos+1):
                      temp_cell = t.cell(row, col)
@@ -280,9 +290,11 @@ def updateTable_final(df_final, test):
              #                 end={"sz": 6, "color": "#000000", "val": "single"},
              #             )
             # add font color to Category
-        else:
-            a = t.cell(st_pos, 0)
-            a.text = str(state["row_no"] + sort_dict[st_pos])
+        # else:
+        #     a = t.cell(st_pos, 0)
+        #     a.text =  str(st_pos)
+            
+            
         for col in [4,5,6]:
                 for cell in t.columns[col].cells:
                     if cell.text == "Alert":
@@ -355,24 +367,44 @@ def save_image(df,up_files):
     img_list = []
     img_num_list = []
     location_dict = []
+    segment_list = []
     for idx, rows in df.iterrows():
-        temp_img_list = str(rows[10]).split(",")
-        temp_img_list = [t.strip() for t in temp_img_list]
-        temp_img_num = str(rows[6]).split("-")
-        temp_img_num = [int(t.strip()) for t in temp_img_num]
-        if len(temp_img_num)>1:
-            temp_img_num = [t for t in range(temp_img_num[0], temp_img_num[1]+1) ]
-        temp_loc = rows[4]
-        for m in range(len(temp_img_num)):
-            location_dict.append(temp_loc)
-        img_list = img_list + temp_img_list
-        img_num_list = img_num_list + temp_img_num
+        if str(rows[10]) != "nan" and str(rows[10])!="-":
+            temp_img_list = str(rows[10]).split(",")
+            temp_img_list = [t.strip() for t in temp_img_list]
+            temp_img_num = str(rows[6]).split("-")
+            temp_img_num = [int(t.strip()) for t in temp_img_num]
+            if len(temp_img_num)>1:
+                temp_img_num = [t for t in range(temp_img_num[0], temp_img_num[1]+1) ]
+            if pd.isna(rows[4]):
+                temp_loc = "NoAv"
+            else:
+                temp_loc = rows[4]
+            try:
+                temp_seg = rows[11]
+            except:
+                pass
+            for m in range(len(temp_img_num)):
+                location_dict.append(temp_loc)
+                try:
+                   segment_list.append(temp_seg) 
+                except:
+                    pass
+                
+            img_list = img_list + temp_img_list
+            img_num_list = img_num_list + temp_img_num
     # st.write(img_num_list)
-    # st.write(img_list)
+    st.write(img_list)
+    # st.write(img_num_list)
     
     # st.wire()
     for j in range(len(img_list)):
-        img_num_dict[img_list[j]] = [img_num_list[j], temp_loc]
+        
+        
+        try:
+            img_num_dict[img_list[j]] = [img_num_list[j], location_dict[j], 0,0, segment_list[j]]
+        except:
+            img_num_dict[img_list[j]] = [img_num_list[j], location_dict[j],0,0]
     
     for file in up_files:
         file_name  =file.name
@@ -382,14 +414,26 @@ def save_image(df,up_files):
         for img_t in img_list:
             if img_t in file_name:
                 loc_name = img_num_dict[img_t][1]
+                # st.write(img_t, loc_name)
+                
                 loc_name_list = loc_name.split(".")
                 new_loc_name = ""
                 for m in loc_name_list:
                     new_loc_name = new_loc_name + str(m)
+                    
+                try:
+                    new_loc_name = new_loc_name + "_"+img_num_dict[img_t][4]
+                except:
+                    pass
                 new_file_name = "Img "+ str(img_num_dict[img_t][0]) + " @@@" + new_loc_name + "."+ ext_name
-                img_num_dict[img_t].append(new_file_name)
-                img_num_dict[img_t].append(file_name)
+                new_file_name = new_file_name.replace("/", "-")
+                img_num_dict[img_t][2] = new_file_name
+                img_num_dict[img_t][3] = file_name
+                # img_num_dict[img_t].append(new_file_name)
+                # img_num_dict[img_t].append(file_name)
+                
                 im2.save("images_comp_audit/"+new_file_name)
+    # st.write(img_num_dict)
                 
                 
 def update_test_table():
@@ -397,35 +441,78 @@ def update_test_table():
     state["row_no"] = 1
     global df2
     global up_files
-    section_report = set(df2["Section"])
-    state["row_no"] =1
-    count_temp = 1
-    for i in section_report:
-        df3 = df2[df2["Section"] == i]
-        no_of_images = sum(list(df3["No of Images"]))
-        df3_temp =  df3.copy(deep=True)
-        for idx, row in df3_temp.iterrows():
-            no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
-            if no_of_img_temp>1:
-                start_val_temp =  count_temp
-                end_val_temp = count_temp + no_of_img_temp - 1
-                img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
-                df3_temp.loc[idx,"Image No."] = img_val 
-                count_temp = count_temp + no_of_img_temp
-            else:
-                start_val_temp =  count_temp
-                img_val = "00"+str(start_val_temp)
-                df3_temp.loc[idx,"Image No."] = img_val 
-                count_temp = count_temp + no_of_img_temp
-        df3 = df3_temp    
-        
-        # st.write("no of image" + str(no_of_images))
-        df3 = df3.drop(["No of Images"], axis=1)
-        df4 = df3.copy(deep=True)
-        df3 = df3.iloc[:, :-2]
-        # st.write(df3)
-        updateTable_final(df3, True)
-        # updateImage(df4, no_of_images, up_files)  
+    try:
+        segment_list =  list(df2["Segment"])
+        segment = []
+        for m in segment_list:
+            if m not in segment:
+                segment.append(m)
+        for seg in segment:
+            df_seg = df2[df2["Segment"] == seg]
+            df_seg = df_seg.copy(deep=True)
+            section_report = set(df_seg["Section"])
+            state["row_no"] =1
+            count_temp = 1
+            for i in section_report:
+                df3 = df_seg[df_seg["Section"] == i]
+                no_of_images = sum(list(df3["No of Images"]))
+                df3_temp =  df3.copy(deep=True)
+                for idx, row in df3_temp.iterrows():
+                    no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
+                    if no_of_img_temp>1:
+                        start_val_temp =  count_temp
+                        end_val_temp = count_temp + no_of_img_temp - 1
+                        img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
+                        df3_temp.loc[idx,"Image No."] = img_val 
+                        count_temp = count_temp + no_of_img_temp
+                    else:
+                        start_val_temp =  count_temp
+                        img_val = "00"+str(start_val_temp)
+                        df3_temp.loc[idx,"Image No."] = img_val 
+                        count_temp = count_temp + no_of_img_temp
+                df3 = df3_temp    
+                
+                # st.write("no of image" + str(no_of_images))
+                df3 = df3.drop(["No of Images","Segment"], axis=1)
+                df4 = df3.copy(deep=True)
+                df3 = df3.iloc[:, :-2]
+                # st.write(df3)
+                updateTable_final(df3, True)
+                # updateImage(df4, no_of_images, up_files)  
+            
+            
+            
+            
+    except:
+        section_report = set(df2["Section"])
+        state["row_no"] =1
+        count_temp = 1
+        for i in section_report:
+            df3 = df2[df2["Section"] == i]
+            no_of_images = sum(list(df3["No of Images"]))
+            df3_temp =  df3.copy(deep=True)
+            for idx, row in df3_temp.iterrows():
+                no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
+                if no_of_img_temp>1:
+                    start_val_temp =  count_temp
+                    end_val_temp = count_temp + no_of_img_temp - 1
+                    img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
+                    df3_temp.loc[idx,"Image No."] = img_val 
+                    count_temp = count_temp + no_of_img_temp
+                else:
+                    start_val_temp =  count_temp
+                    img_val = "00"+str(start_val_temp)
+                    df3_temp.loc[idx,"Image No."] = img_val 
+                    count_temp = count_temp + no_of_img_temp
+            df3 = df3_temp    
+            
+            # st.write("no of image" + str(no_of_images))
+            df3 = df3.drop(["No of Images", "Segment"], axis=1)
+            df4 = df3.copy(deep=True)
+            df3 = df3.iloc[:, :-2]
+            # st.write(df3)
+            updateTable_final(df3, True)
+            # updateImage(df4, no_of_images, up_files)  
     
     
          
@@ -439,38 +526,81 @@ def updateTable_new():
 def updateWordDoc():
     global df2
     global up_files
-    section_report = set(df2["Section"])
-    count_temp = 1
-    for i in section_report:
-        df3 = df2[df2["Section"] == i]
-        no_of_images = sum(list(df3["No of Images"]))
-        # st.write("no of image" + str(no_of_images))
-        df3_temp =  df3.copy(deep=True)
-        for idx, row in df3_temp.iterrows():
-            no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
-            if no_of_img_temp>1:
-                start_val_temp =  count_temp
-                end_val_temp = count_temp + no_of_img_temp - 1
-                img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
-                df3_temp.loc[idx,"Image No."] = img_val 
-                count_temp = count_temp + no_of_img_temp
-            else:
-                start_val_temp =  count_temp
-                img_val = "00"+str(start_val_temp)
-                df3_temp.loc[idx,"Image No."] = img_val 
-                count_temp = count_temp + no_of_img_temp
+    try:
+        segment_list =  list(df2["Segment"])
+        segment = []
+        for m in segment_list:
+            if m not in segment:
+                segment.append(m)
+        for seg in segment:
+            df_seg = df2[df2["Segment"] == seg]
+            df_seg = df_seg.copy(deep=True)
+            section_report = set(df_seg["Section"])
+            state["row_no"] =1
+            count_temp = 1
+            for i in section_report:
+                df3 = df_seg[df_seg["Section"] == i]
+                no_of_images = sum(list(df3["No of Images"]))
+                df3_temp =  df3.copy(deep=True)
+                for idx, row in df3_temp.iterrows():
+                    no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
+                    if no_of_img_temp>1:
+                        start_val_temp =  count_temp
+                        end_val_temp = count_temp + no_of_img_temp - 1
+                        img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
+                        df3_temp.loc[idx,"Image No."] = img_val 
+                        count_temp = count_temp + no_of_img_temp
+                    else:
+                        start_val_temp =  count_temp
+                        img_val = "00"+str(start_val_temp)
+                        df3_temp.loc[idx,"Image No."] = img_val 
+                        count_temp = count_temp + no_of_img_temp
+                df3 = df3_temp    
                 
-        df3 = df3_temp       
-        df3 = df3.drop(["No of Images"], axis=1)
-        
-        
-        
-        
-        df4 = df3.copy(deep=True)
-        df3 = df3.iloc[:, :-2]
-        # st.write(df3)
-        updateTable_final(df3, False)
-        updateImage(df4, no_of_images, up_files)
+                # st.write("no of image" + str(no_of_images))
+                df3 = df3.drop(["No of Images","Segment"], axis=1)
+                df4 = df3.copy(deep=True)
+                df3 = df3.iloc[:, :-2]
+                # st.write(df3)
+                updateTable_final(df3, True)
+                updateImage(df4, no_of_images, up_files)  
+    
+    
+    
+    
+    except:
+        section_report = set(df2["Section"])
+        count_temp = 1
+        for i in section_report:
+            df3 = df2[df2["Section"] == i]
+            no_of_images = sum(list(df3["No of Images"]))
+            # st.write("no of image" + str(no_of_images))
+            df3_temp =  df3.copy(deep=True)
+            for idx, row in df3_temp.iterrows():
+                no_of_img_temp =  df3_temp.loc[idx,"No of Images"]
+                if no_of_img_temp>1:
+                    start_val_temp =  count_temp
+                    end_val_temp = count_temp + no_of_img_temp - 1
+                    img_val = "00"+str(start_val_temp) + " - " + "00"+str(end_val_temp)
+                    df3_temp.loc[idx,"Image No."] = img_val 
+                    count_temp = count_temp + no_of_img_temp
+                else:
+                    start_val_temp =  count_temp
+                    img_val = "00"+str(start_val_temp)
+                    df3_temp.loc[idx,"Image No."] = img_val 
+                    count_temp = count_temp + no_of_img_temp
+                    
+            df3 = df3_temp       
+            df3 = df3.drop(["No of Images"], axis=1)
+            
+            
+            
+            
+            df4 = df3.copy(deep=True)
+            df3 = df3.iloc[:, :-2]
+            # st.write(df3)
+            updateTable_final(df3, False)
+            updateImage(df4, no_of_images, up_files)
 
 
 def updateImage(df3, no_of_images, up_files):
@@ -519,17 +649,26 @@ def updateImage(df3, no_of_images, up_files):
     image_number_list = []
     for i in image_number_df_list:
         # st.write()
-        temp_list_img = (str(i).split(","))
-        temp_list_img = [t.strip() for t in temp_list_img]  
-        image_number_list = image_number_list + temp_list_img
+        if str(i) != "nan" and str(i)!="-":
+            temp_list_img = (str(i).split(","))
+            temp_list_img = [t.strip() for t in temp_list_img]  
+            image_number_list = image_number_list + temp_list_img
         
-
+    t_list = []
     # st.write(image_number_list)    
-    for i in range(no_of_images):
+    for i in range(len(image_number_list)):
         # st.write(image_number_list)
         img_no = image_number_list[i]
+        t_list.append(img_no)
+        try:
+            image_file_t = img_num_dict[img_no]
+        except:
+            st.write(t_list)
+            raise ValueError
+        # image_file_name = image_file_t[2]
         image_file_name = img_num_dict[img_no][2]
         file_temp1 = 'images_comp_audit/'+image_file_name
+        # st.write("open ", file_temp1 )
         im_temp = Image.open(file_temp1)
         im_width, im_height = im_temp.size
         
@@ -549,7 +688,10 @@ def updateImage(df3, no_of_images, up_files):
         cell = table.rows[row_no+1].cells[col_no]
         # cell = table.rows[counter+1].cells[counter_cols]
         # st.write(row_no, col_no)
-        name = "Img " + str(img_list[i]) +" at " + image_location_dict[img_list[i]]
+        try:
+            name = "Img " + str(img_list[i]) +" at " + image_location_dict[img_list[i]]
+        except:
+            name = "Img " + str(img_list[i])
         cell.text = name
         if col_no<2:
             counter_cols = counter_cols + 1
@@ -709,10 +851,12 @@ def updateImageLocation(df3, no_of_images, up_files):
         
 
     # st.write(image_number_list)    
-    for i in range(no_of_images):
+    for i in range(len(image_number_list)):
         # st.write(image_number_list)
         img_no = image_number_list[i]
-        image_file_name = img_num_dict[img_no][2]
+        image_file_t = img_num_dict[img_no]
+        image_file_name = image_file_t[2]
+        # image_file_name = img_num_dict[img_no][2]
         file_temp1 = 'images_comp_audit/'+image_file_name
         im_temp = Image.open(file_temp1)
         im_width, im_height = im_temp.size
@@ -839,7 +983,7 @@ if obs_file is not None:
             for file_temp in file_name_list:
                 if img in file_temp:
                     found_img.append(img)
-            if img not in found_img:
+            if img not in found_img and img != "nan":
                 missing_img.append(img)
         
         if len(missing_img)>0:
